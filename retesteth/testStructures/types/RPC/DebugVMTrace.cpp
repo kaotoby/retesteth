@@ -10,7 +10,7 @@ using namespace std;
 using namespace test::debug;
 namespace fs = boost::filesystem;
 
-const size_t c_maxRowsToPrint = 300;
+const size_t c_maxRowsToPrint = 2147483640;
 const string c_tooManyRawsMessage = "==TOO MANY LOG ROWS TO PRINT (Use --vmtraceraw <folder>)==";
 
 namespace test::teststruct
