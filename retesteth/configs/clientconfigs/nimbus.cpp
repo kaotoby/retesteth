@@ -31,7 +31,8 @@ string const nimbus_config = R"({
         "Berlin",
         "London",
         "Merge",
-        "Shanghai"
+        "Shanghai",
+        "Cancun"
     ],
     "additionalForks" : [
         "FrontierToHomesteadAt5",
@@ -43,7 +44,8 @@ string const nimbus_config = R"({
         "ArrowGlacier",
         "ArrowGlacierToMergeAtDiffC0000",
         "GrayGlacier",
-        "MergeToShanghaiAtTime15k"
+        "MergeToShanghaiAtTime15k",
+        "ShanghaiToCancunAtTime15k"
     ],
     "fillerSkipForks" : [
         "Merge+3540+3670",
@@ -117,6 +119,7 @@ string const nimbus_config = R"({
       "UncleIsBrother" : "Uncle is brother!",
       "OutOfGas" : "out of gas",
       "SenderNotEOA" : "sender is not an EOA",
+      "SenderNotEOAorNoCASH" : "not enough cash",
       "IntrinsicGas" : "not enough gas to perform calculation",
       "ExtraDataIncorrectDAO" : "BlockHeader require Dao ExtraData!",
       "InvalidTransactionVRS" : "t8ntool didn't return a transaction with hash",
@@ -228,8 +231,10 @@ string const nimbus_config = R"({
       "TR_NoFunds" : "not enough cash",
       "TR_NoFundsX" : "larger than expected Int value",
       "TR_NoFundsValue" : "processTransaction failed",
+      "TR_NoFundsOrGas" : "not enough gas to perform calculation",
       "TR_FeeCapLessThanBlocks" : "maxFee is smaller than baseFee",
       "TR_FeeCapLessThanBlocksORGasLimitReached" : "gas limit reached",
+      "TR_FeeCapLessThanBlocksORNoFunds" : "not enough gas to perform calculation",
       "TR_GasLimitReached" : "gas limit reached",
       "TR_NonceTooHigh" : "invalid tx: account nonce mismatch",
       "TR_NonceTooLow" : "invalid tx: account nonce mismatch",

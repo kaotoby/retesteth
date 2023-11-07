@@ -26,7 +26,8 @@ string const ethereumjs_config = R"({
        "Berlin",
        "London",
        "Merge",
-       "Shanghai"
+       "Shanghai",
+       "Cancun"
     ],
     "additionalForks":[
        "FrontierToHomesteadAt5",
@@ -36,7 +37,8 @@ string const ethereumjs_config = R"({
        "ByzantiumToConstantinopleFixAt5",
        "BerlinToLondonAt5",
        "ArrowGlacier",
-       "MergeToShanghaiAtTime15k"
+       "MergeToShanghaiAtTime15k",
+       "ShanghaiToCancunAtTime15k"
     ],
     "fillerSkipForks" : [
         "Merge+3540+3670",
@@ -104,6 +106,7 @@ string const ethereumjs_config = R"({
        "UncleIsBrother":"",
        "OutOfGas":"",
        "SenderNotEOA":"invalid sender address, address is not EOA",
+       "SenderNotEOAorNoCASH" : "invalid sender address, address is not EOA",
        "IntrinsicGas":"base fee exceeds gas limit",
        "TR_RLP_WRONGVALUE" : "value cannot exceed MAX_INTEGER",
        "ExtraDataIncorrectDAO":"",
@@ -211,7 +214,9 @@ string const ethereumjs_config = R"({
        "TR_NoFunds":"doesn't have enough funds to send tx",
        "TR_NoFundsX":"gas limit * gasPrice cannot exceed MAX_INTEGER",
        "TR_NoFundsValue":"",
+       "TR_NoFundsOrGas" : "base fee exceeds gas limit",
        "TR_FeeCapLessThanBlocks":"is less than the block's baseFeePerGas",
+       "TR_FeeCapLessThanBlocksORNoFunds" : "is less than the block's baseFeePerGas",
        "TR_GasLimitReached":"tx has a higher gas limit than the remaining gas in the block",
        "TR_NonceTooHigh":"",
        "TR_NonceTooLow":"",

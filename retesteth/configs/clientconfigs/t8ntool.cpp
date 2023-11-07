@@ -11,10 +11,16 @@ if [ -z $solc ]; then
    >&2 echo "yul.sh \"Yul compilation error: 'solc' not found!\""
    echo "0x"
 else
+
     if [ ! -z $2 ]; then
         evmversion="--evm-version $2"
     fi
-    out=$(solc $evmversion --assemble $1 2>&1)
+    if [ -z $3 ]; then
+        out=$(solc $evmversion --strict-assembly --optimize --yul-optimizations=":" $1 2>&1)
+    else
+        out=$(solc $evmversion --strict-assembly $1 2>&1)
+    fi
+
     a=$(echo "$out" | grep "Binary representation:" -A 1 | tail -n1)
     case "$out" in
     *Error*) >&2 echo "yul.sh \"Yul compilation error: \"\n$out";;
@@ -97,7 +103,8 @@ string const t8ntool_config = R"({
         "Berlin",
         "London",
         "Merge",
-        "Shanghai"
+        "Shanghai",
+        "Cancun"
     ],
     "additionalForks" : [
         "FrontierToHomesteadAt5",
@@ -117,19 +124,23 @@ string const t8ntool_config = R"({
     "exceptions" : {
       "PYSPECS_EXCEPTIONS" : "",
       "Transaction without funds" : "insufficient funds for gas * price + value",
+      "insufficient account balance" : "insufficient funds for gas * price + value",
       "invalid excess blob gas" : "Error in field: excessBlobGas",
       "invalid excessBlobGas" : "Error in field: excessBlobGas",
       "invalid blob gas used" : "Error in field: blobGasUsed",
-      "Invalid params" : "unknown block type",
+      "invalid pre fork blob fields" : "unknown block type!",
+      "blob fields missing post fork" : "unknown block type!",
       "invalid transaction" : "expected to have exactly 14 elements",
-      "invalid_versioned_hash" : "unversioned blob hash",
-      "zero_blob_tx" : "blob transaction with zero blobs",
+      "invalid blob versioned hash" : "hash version mismatch",
+      "zero blob tx" : "blob transaction missing blob hashes",
       "insufficient_account_balance" : "Error importing raw rlp block",
-      "invalid_blob_count" : "block max blob gas exceeded",
-      "insufficient max fee per blob gas" : "max fee per data gas less than block data gas fee",
+      "invalid_blob_count" : "Block has invalid number of blobs in txs >=7!",
+      "insufficient max fee per blob gas" : "max fee per blob gas less than block blob gas fee",
       "insufficient max fee per gas" : "max fee per gas less than block base fee",
-      "invalid max fee per blob gas" : "max fee per data gas less than block data gas fee",
+      "invalid max fee per blob gas" : "max fee per blob gas less than block blob gas fee",
       "too_many_blobs_tx" : "block max blob gas exceeded",
+      "too many blobs" : "Block has invalid number of blobs in txs >=7!",
+      "tx type 3 not allowed pre-Cancun" : "blob tx used but field env.ExcessBlobGas missing",
 
       "AddressTooShort" : "input string too short for common.Address",
       "AddressTooLong" : "rlp: input string too long for common.Address, decoding into (types.Transaction)(types.LegacyTx).To",
@@ -192,6 +203,7 @@ string const t8ntool_config = R"({
       "UncleIsBrother" : "Uncle is brother!",
       "OutOfGas" : "out of gas",
       "SenderNotEOA" : "sender not an eoa:",
+      "SenderNotEOAorNoCASH" : "sender not an eoa:",
       "IntrinsicGas" : "intrinsic gas too low",
       "ExtraDataIncorrectDAO" : "BlockHeader require Dao ExtraData!",
       "InvalidTransactionVRS" : "t8ntool didn't return a transaction with hash",
@@ -303,8 +315,10 @@ string const t8ntool_config = R"({
       "TR_NoFunds" : "insufficient funds for gas * price + value",
       "TR_NoFundsX" : "insufficient funds for gas * price + value",
       "TR_NoFundsValue" : "insufficient funds for transfer",
+      "TR_NoFundsOrGas" : "insufficient funds for gas * price + value",
       "TR_FeeCapLessThanBlocks" : "max fee per gas less than block base fee",
       "TR_FeeCapLessThanBlocksORGasLimitReached" : "max fee per gas less than block base fee",
+      "TR_FeeCapLessThanBlocksORNoFunds" : "max fee per gas less than block base fee",
       "TR_GasLimitReached" : "gas limit reached",
       "TR_NonceTooHigh" : "nonce too high",
       "TR_NonceTooLow" : "nonce too low",
@@ -314,8 +328,10 @@ string const t8ntool_config = R"({
       "TR_TooShort": "typed transaction too short",
       "TR_InitCodeLimitExceeded" : "max initcode size exceeded",
       "TR_BlobDecodeError" : "expected List",
-      "TR_EMPTYBLOB" : "rlp: input string too short for common.Address",
-      "TR_BLOBVERSION_INVALID" : "unversioned blob hash",
+      "TR_EMPTYBLOB" : "blob transaction missing blob hashes",
+      "TR_BLOBCREATE" : "rlp: input string too short for common.Address",
+      "TR_BLOBVERSION_INVALID" : "hash version mismatch",
+      "TR_BLOBLIST_OVERSIZE" : "would exceed maximum allowance",
       "1559BaseFeeTooLarge": "TransactionBaseFee convertion error: VALUE  >u256",
       "1559PriorityFeeGreaterThanBaseFee": "maxFeePerGas \u003c maxPriorityFeePerGas",
       "2930AccessListAddressTooLong": "rlp: input string too long for common.Address, decoding into (types.Transaction)(types.AccessListTx).AccessList[0].Address",
@@ -373,10 +389,13 @@ OUTPUT=$4
 EVMT8N=$5
 FORCER=$6
 DEBUG=$7
+FROMF=$8
+UNTIF=$9
 
+mkdir "./tests/tmp"
 genUID=$(uuidgen)
-testdir="./tests/tmptest_${genUID//-/_}"
-testout="./tests/out_${genUID//-/_}"
+testdir="./tests/tmp/tmptest_${genUID//-/_}"
+testout="./tests/tmp/out_${genUID//-/_}"
 
 if [ -d $testdir ]; then
     rm -r $testdir
@@ -393,19 +412,19 @@ if [ "$TESTCA" != "null" ]; then
     SRCPATH2="$SRCPATH2::$TESTCA"
 fi
 if [ "$FORCER" != "null" ]; then
-    ADDFLAGS="$ADDFLAGS --force-refill"
+    ADDFLAGS="$ADDFLAGS"
 fi
 
 if [ -d $testout ]; then
     rm -r $testout
 fi
 mkdir $testout
-1>&2 echo "fill -v $SRCPATH2 --output "$testout" $ADDFLAGS --evm-bin $EVMT8N --flat-output --disable-hive"
+1>&2 echo "fill -v $SRCPATH2 --output "$testout" $ADDFLAGS --evm-bin $EVMT8N --flat-output --from=$FROMF --until=$UNTIF"
 if [ $DEBUG != "null" ]; then
-    1>&2 fill -v $SRCPATH2 --output "$testout" $ADDFLAGS --evm-bin $EVMT8N --flat-output --disable-hive
+    1>&2 fill -v $SRCPATH2 --output "$testout" $ADDFLAGS --evm-bin $EVMT8N --flat-output --from=$FROMF --until=$UNTIF
 else
-    out=$(fill -v $SRCPATH2 --output "$testout" $ADDFLAGS --evm-bin $EVMT8N --flat-output --disable-hive)
-    if [[ "$out" == *" failed"* ]]; then
+    out=$(fill -v $SRCPATH2 --output "$testout" $ADDFLAGS --evm-bin $EVMT8N --flat-output --from=$FROMF --until=$UNTIF 2>&1)
+    if [[ "$out" == *" failed"* ]] || [[ "$out" == *"ERROR"* ]]; then
       1>&2 echo "./retesteth/pyspecsStart.sh Pyspec test generation failed (use --verbosity PYSPEC for details) "
       exit 1
     fi
@@ -413,6 +432,7 @@ fi
 cp -r $testout/* $OUTPUT
 rm -r $testout
 rm -r $testdir
+rm -r "./tests/tmp"
 exit 0
 )";
 

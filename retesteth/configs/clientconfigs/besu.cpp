@@ -12,7 +12,7 @@ string const besu_config = R"({
     "name" : "Hyperledger Besu on TCP",
     "socketType" : "tranition-tool",
     "socketAddress" : "start.sh",
-    "initializeTime" : "3",
+    "initializeTime" : "10",
     "checkDifficulty" : true,
     "calculateDifficulty" : false,
     "checkBasefee" : true,
@@ -34,7 +34,8 @@ string const besu_config = R"({
         "Berlin",
         "London",
         "Merge",
-        "Shanghai"
+        "Shanghai",
+        "Cancun"
     ],
     "additionalForks" : [
         "FrontierToHomesteadAt5",
@@ -45,7 +46,8 @@ string const besu_config = R"({
         "BerlinToLondonAt5",
         "ArrowGlacier",
         "GrayGlacier",
-        "MergeToShanghaiAtTime15k"
+        "MergeToShanghaiAtTime15k",
+        "ShanghaiToCancunAtTime15k"
     ],
     "fillerSkipForks" : [
         "Merge+3540+3670",
@@ -114,6 +116,7 @@ string const besu_config = R"({
       "UncleIsBrother" : "Uncle is brother!",
       "OutOfGas" : "out of gas",
       "SenderNotEOA" : "sender not an eoa:",
+      "SenderNotEOAorNoCASH" : "sender not an eoa:",
       "IntrinsicGas" : "t8ntool didn't return a transaction with hash",
       "ExtraDataIncorrectDAO" : "BlockHeader require Dao ExtraData!",
       "InvalidTransactionVRS" : "t8ntool didn't return a transaction with hash",
@@ -224,7 +227,9 @@ string const besu_config = R"({
       "TR_NoFunds" : "insufficient funds for gas * price + value",
       "TR_NoFundsX" : "insufficient funds for gas * price + value",
       "TR_NoFundsValue" : "insufficient funds for transfer",
+      "TR_NoFundsOrGas" : "insufficient funds for gas * price + value",
       "TR_FeeCapLessThanBlocks" : "max fee per gas less than block base fee",
+      "TR_FeeCapLessThanBlocksORNoFunds" : "max fee per gas less than block base fee",
       "TR_GasLimitReached" : "gas limit reached",
       "TR_NonceTooHigh" : "nonce too high",
       "TR_NonceTooLow" : "nonce too low",
@@ -268,7 +273,7 @@ dir=$(pwd)
 cd $BESU_PATH
 ethereum/evmtool/build/install/evmtool/bin/evm t8n-server &> /dev/null &
 cd $dir
-sleep 2
+sleep 10
 if lsof -i :3000 | grep -q LISTEN; then
     1>&2 echo "$SNAME Besu daemon is listening on port 3000"
 else
@@ -285,6 +290,9 @@ fi
 
 if [ $1 = "t8n" ] || [ $1 = "b11r" ]; then
     besuevm $1 $2 $3 $4 $5 $6 $7 $8 $9 $10 $11 $12 $13 $14 $15 $16 $17 $18 $19 $20 $21 $22 $23 $24 $25 $26
+elif [ $1 = "t8n-server" ]; then
+    besuevm $1 $2 $3 $4 $5 &
+    exit 0
 elif [ $1 = "-v" ]; then
     besuevm --version
 else
@@ -314,7 +322,7 @@ else
         if [ $readOutResult -eq 1 ]; then  outresult=$index; readOutResult=0; continue; fi
 
         if [ $index = "--input.txs" ]; then readTxs=1; continue; fi
-        if [ $readTxs -eq 1 ]; then  txs=`cat $index`; readTxs=0; continue; fi
+        if [ $readTxs -eq 1 ]; then  txs=`cat $index | sed 's/"//g'`; readTxs=0; continue; fi
 
         if [ $index = "--input.env" ]; then readEnv=1; continue; fi
         if [ $readEnv -eq 1 ]; then  env=`cat $index`; readEnv=0; continue; fi

@@ -6,24 +6,45 @@ namespace retesteth::options
 {
 
 string const pyt8n_setup = R"(#!/bin/bash
-    cd ~/Ethereum/execution-specs
-    python3.10 -m venv venv
+    SNAME=".retesteth/pyt8n/setup.sh"
+    if [ -z "${PYT8N_PATH}" ]; then
+      1>&2 echo "$SNAME ERROR: Env variable PYT8N_PATH is either empty or not set!"
+    else
+      if [ -d "${PYT8N_PATH}" ]; then
+        1>&2 echo "$SNAME Using pyt8n path: '$PYT8N_PATH'"
+      else
+        echo "$SNAME ERROR: Path '$PYT8N_PATH' does not exist in the file system"
+      fi
+    fi
+
+    cd $PYT8N_PATH
+    python3 -m venv venv
     source venv/bin/activate
     pip install -e .
+    sleep 5
 )";
 
 string const pyt8n_start = R"(#!/bin/bash
 
-cd ~/Ethereum/execution-specs
-python3.10 -m venv venv
+SNAME=".retesteth/pyt8n/setup.sh"
+if [ -z "${PYT8N_PATH}" ]; then
+  1>&2 echo "$SNAME ERROR: Env variable PYT8N_PATH is either empty or not set!"
+else
+  if [ ! -d "${PYT8N_PATH}" ]; then
+    1>&2 echo "$SNAME ERROR: Path '$PYT8N_PATH' does not exist in the file system"
+  fi
+fi
+
+cd $PYT8N_PATH
+python3 -m venv venv
 source venv/bin/activate
-cd ./src/ethereum_spec_tools/
-cmd="python3.10 -m evm_tools t8n"
+cmd="ethereum-spec-evm"
+#cmd="python3 -m evm_tools t8n"
 
 if [ $1 = "t8n" ] || [ $1 = "b11r" ]; then
-    $($cmd $1 $2 $3 $4 $5 $6 $7 $8 $9 $10 $11 $12 $13 $14 $15 $16 $17 $18 $19 $20 $21 $22 $23 $24 $25 $26)
-elif [ $1 = "-v" ]; then
-    $($cmd -v)
+    $cmd ${1} ${2} ${3} ${4} ${5} ${6} ${7} ${8} ${9} ${10} ${11} ${12} ${13} ${14} ${15} ${16} ${17} ${18} ${19} ${20} ${21} ${22} ${23} ${24} ${25} ${26}
+elif [ $1 = "-v" ] || [ $1 = "-h" ]; then
+    $cmd $1
 else
     stateProvided=0
     readErrorLog=0
@@ -97,13 +118,14 @@ string const pyt8n_config = R"({
         "ArrowGlacier",
         "ArrowGlacierToMergeAtDiffC0000",
         "GrayGlacier",
-        "MergeToShanghaiAtTime15k"
+        "MergeToShanghaiAtTime15k",
+        "ShanghaiToCancunAtTime15k"
     ],
     "fillerSkipForks" : [
     ],
     "exceptions" : {
       "PYSPECS_EXCEPTIONS" : "",
-      "Transaction without funds" : "insufficient funds for gas * price + value",
+      "Transaction without funds" : "Failed transaction:",
 
       "AddressTooShort" : "input string too short for common.Address",
       "AddressTooLong" : "rlp: input string too long for common.Address, decoding into (types.Transaction)(types.LegacyTx).To",
@@ -166,6 +188,7 @@ string const pyt8n_config = R"({
       "UncleIsBrother" : "Uncle is brother!",
       "OutOfGas" : "out of gas",
       "SenderNotEOA" : "Failed transaction",
+      "SenderNotEOAorNoCASH" : "Failed transaction",
       "IntrinsicGas" : "intrinsic gas too low",
       "ExtraDataIncorrectDAO" : "BlockHeader require Dao ExtraData!",
       "InvalidTransactionVRS" : "t8ntool didn't return a transaction with hash",
@@ -276,7 +299,9 @@ string const pyt8n_config = R"({
       "TR_NoFunds" : "Failed transaction",
       "TR_NoFundsX" : "Failed transaction",
       "TR_NoFundsValue" : "insufficient funds for transfer",
+      "TR_NoFundsOrGas" : "Failed transaction",
       "TR_FeeCapLessThanBlocks" : "Failed transaction",
+      "TR_FeeCapLessThanBlocksORNoFunds" : "Failed transaction",
       "TR_GasLimitReached" : "Failed transaction",
       "TR_NonceTooHigh" : "nonce too high",
       "TR_NonceTooLow" : "nonce too low",
